@@ -7,10 +7,16 @@ import (
 
 func main() {
 	wargaming := repository.Wargaming{}
-	accountInfo, err := wargaming.GetAccountInfo([]string{"2010342809", "2030131054"})
+	// accountInfo, err := wargaming.GetAccountInfo([]string{"2010342809", "2030131054"})
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+	// fmt.Println(accountInfo)
+	accountList, err := wargaming.GetAccountList([]string{"tonango", "MTDroine"})
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println(accountInfo)
+	fmt.Println(accountList)
 }

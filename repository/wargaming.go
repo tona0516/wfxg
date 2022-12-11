@@ -28,6 +28,18 @@ type AccountInfo struct {
 	} `json:"data"`
 }
 
+type AccountList struct {
+	Status string `json:"status"`
+	Meta   struct {
+		Count  int         `json:"count"`
+		Hidden interface{} `json:"hidden"`
+	} `json:"meta"`
+	Data []struct {
+		NickName  string `json:"nickname"`
+		AccountID int    `json:"account_id"`
+	} `json:"data"`
+}
+
 type Wargaming struct {
 }
 
@@ -69,4 +81,38 @@ func (w *Wargaming) GetAccountInfo(accountID []string) (AccountInfo, error) {
 	}
 
 	return accountInfo, nil
+}
+
+func (w *Wargaming) GetAccountList(accountNames []string) (AccountList, error) {
+	u := &url.URL{}
+	u.Scheme = "https"
+	u.Host = "api.worldofwarships.asia"
+	u.Path = "wows/account/list/"
+	q := u.Query()
+	q.Set("application_id", "3bd34ff346625bf01cc8ba6a9204dd16")
+	q.Set("search", strings.Join(accountNames, ","))
+	q.Set("fields", strings.Join([]string{"account_id", "nickname"}, ","))
+	q.Set("type", "exact")
+	u.RawQuery = q.Encode()
+	res, err := http.Get(u.String())
+	if res != nil {
+		defer res.Body.Close()
+	}
+
+	if err != nil {
+		return AccountList{}, err
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return AccountList{}, err
+	}
+
+	var accountList AccountList
+	err = json.Unmarshal(body, &accountList)
+	if err != nil {
+		return AccountList{}, err
+	}
+
+	return accountList, nil
 }
