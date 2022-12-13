@@ -12,47 +12,49 @@ import (
 type Numbers struct {
 }
 
-func (n *Numbers) Get() (vo.ExpectedStats, error) {
+func (n *Numbers) Get() (*vo.ExpectedStats, error) {
 	res, err := http.Get("https://api.wows-numbers.com/personal/rating/expected/json/")
 	if res != nil {
 		defer res.Body.Close()
 	}
 
-	var empty vo.ExpectedStats
 	if err != nil {
 		fmt.Println(err)
-		return empty, err
+		return nil, err
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Println(err)
-		return empty, err
+		return nil, err
 	}
 
-	data1 := make(map[string]interface{})
-
-	err = json.Unmarshal(body, &data1)
+	depth1 := make(map[string]interface{})
+	err = json.Unmarshal(body, &depth1)
 	if err != nil {
 		fmt.Println(err)
-		return empty, err
+		return nil, err
 	}
 
-	time := data1["time"].(float64)
-	data2 := data1["data"].(map[string]interface{})
+	time := depth1["time"].(float64)
+	depth2 := depth1["data"].(map[string]interface{})
 	data := make(map[int]vo.ExpectedStatsData)
-	for key, value := range data2 {
+	for key, value := range depth2 {
 		keyInt, err := strconv.Atoi(key)
 		if err != nil {
 			continue
 		}
 
-		valueMap, ok := value.(vo.ExpectedStatsData)
+		valueMap, ok := value.(map[string]interface{})
 		if !ok {
 			continue
 		}
 
-		data[keyInt] = valueMap
+		data[keyInt] = vo.ExpectedStatsData{
+			AverageDamageDealt: valueMap["average_damage_dealt"].(float64),
+			AverageFrags:       valueMap["average_frags"].(float64),
+			WinRate:            valueMap["win_rate"].(float64),
+		}
 	}
 
 	response := vo.ExpectedStats{
@@ -60,5 +62,5 @@ func (n *Numbers) Get() (vo.ExpectedStats, error) {
 		Data: data,
 	}
 
-	return response, nil
+	return &response, nil
 }

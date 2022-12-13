@@ -64,11 +64,6 @@ func main() {
 		return
 	}
 
-	// fmt.Println(shipStats.Result)
-	// fmt.Println(clanTag.Result)
-	// fmt.Println(shipInfo.Result)
-	// fmt.Println(expectedStats.Result)
-
 	compose(
 		tempArenaInfo,
 		*accountInfo.Result,
@@ -185,6 +180,7 @@ func fetchShipInfo(wargaming *repo.Wargaming, result chan vo.Result[map[int]vo.S
 
 	limit := make(chan struct{}, 5)
 	wg := sync.WaitGroup{}
+	var mu sync.Mutex
 	for i := 1; i <= pageTotal; i++ {
 		i := i
 		wg.Add(1)
@@ -202,12 +198,14 @@ func fetchShipInfo(wargaming *repo.Wargaming, result chan vo.Result[map[int]vo.S
 			}
 
 			for shipID, shipInfo := range encyclopediaShips.Data {
+				mu.Lock()
 				shipInfoMap[shipID] = vo.ShipInfo{
 					Name:   shipInfo.Name,
 					Tier:   shipInfo.Tier,
 					Type:   shipInfo.Type,
 					Nation: shipInfo.Nation,
 				}
+				mu.Unlock()
 			}
 		}()
 	}
@@ -223,7 +221,7 @@ func fetchExpectedStats(numbers *repo.Numbers, result chan vo.Result[*vo.Expecte
 		return
 	}
 
-	result <- vo.Result[*vo.ExpectedStats]{&expectedStats, err}
+	result <- vo.Result[*vo.ExpectedStats]{expectedStats, err}
 }
 
 func compose(
