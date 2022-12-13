@@ -26,11 +26,11 @@ func main() {
 		return
 	}
 
-	accountInfoResult := make(chan vo.Result[*vo.AccountInfo], 1)
+	accountInfoResult := make(chan vo.Result[vo.AccountInfo], 1)
 	shipStatsResult := make(chan vo.Result[map[int]vo.ShipsStats], 1)
 	clanTagResult := make(chan vo.Result[map[int]string], 1)
 	shipInfoResult := make(chan vo.Result[map[int]vo.ShipInfo], 1)
-	expectedStatsResult := make(chan vo.Result[*vo.ExpectedStats], 1)
+	expectedStatsResult := make(chan vo.Result[vo.ExpectedStats], 1)
 
 	go fetchAccountInfo(&wargaming, accountIDs, accountInfoResult)
 	go fetchShipStats(&wargaming, accountIDs, shipStatsResult)
@@ -66,12 +66,12 @@ func main() {
 
 	compose(
 		tempArenaInfo,
-		*accountInfo.Result,
+		accountInfo.Result,
 		*accountList,
 		clanTag.Result,
 		shipStats.Result,
 		shipInfo.Result,
-		*expectedStats.Result,
+		expectedStats.Result,
 	)
 }
 
@@ -99,14 +99,14 @@ func fetchAccount(wargaming *repo.Wargaming, tempArenaInfo vo.TempArenaInfo) ([]
 	return accountIDs, &accountList, nil
 }
 
-func fetchAccountInfo(wargaming *repo.Wargaming, accountIDs []int, result chan vo.Result[*vo.AccountInfo]) {
+func fetchAccountInfo(wargaming *repo.Wargaming, accountIDs []int, result chan vo.Result[vo.AccountInfo]) {
 	accountInfo, err := wargaming.GetAccountInfo(accountIDs)
 	if err != nil {
-		result <- vo.Result[*vo.AccountInfo]{nil, err}
+		result <- vo.Result[vo.AccountInfo]{Result: accountInfo, Error: err}
 		return
 	}
 
-	result <- vo.Result[*vo.AccountInfo]{&accountInfo, err}
+	result <- vo.Result[vo.AccountInfo]{Result: accountInfo, Error: nil}
 }
 
 func fetchShipStats(wargaming *repo.Wargaming, accountIDs []int, result chan vo.Result[map[int]vo.ShipsStats]) {
@@ -114,33 +114,34 @@ func fetchShipStats(wargaming *repo.Wargaming, accountIDs []int, result chan vo.
 	limit := make(chan struct{}, 5)
 	wg := sync.WaitGroup{}
 	for i := range accountIDs {
+		limit <- struct{}{}
 		wg.Add(1)
-		accountID := accountIDs[i]
-		go func() {
+		go func(accountID int) {
 			defer func() {
-				<-limit
 				wg.Done()
+				<-limit
 			}()
 
-			limit <- struct{}{}
 			shipStats, err := wargaming.GetShipsStats(accountID)
 			if err != nil {
-				result <- vo.Result[map[int]vo.ShipsStats]{nil, err}
+				result <- vo.Result[map[int]vo.ShipsStats]{Result: shipStatsMap, Error: err}
 				return
 			}
 
 			shipStatsMap[accountID] = shipStats
-		}()
+		}(accountIDs[i])
 	}
 	wg.Wait()
 
-	result <- vo.Result[map[int]vo.ShipsStats]{shipStatsMap, nil}
+	result <- vo.Result[map[int]vo.ShipsStats]{Result: shipStatsMap, Error: nil}
 }
 
 func fetchClanTag(wargaming *repo.Wargaming, accountIDs []int, result chan vo.Result[map[int]string]) {
+	clanTagMap := make(map[int]string)
+
 	clansAccountInfo, err := wargaming.GetClansAccountInfo(accountIDs)
 	if err != nil {
-		result <- vo.Result[map[int]string]{nil, err}
+		result <- vo.Result[map[int]string]{Result: clanTagMap, Error: err}
 		return
 	}
 
@@ -154,11 +155,10 @@ func fetchClanTag(wargaming *repo.Wargaming, accountIDs []int, result chan vo.Re
 
 	clansInfo, err := wargaming.GetClansInfo(clanIDs)
 	if err != nil {
-		result <- vo.Result[map[int]string]{nil, err}
+		result <- vo.Result[map[int]string]{Result: clanTagMap, Error: err}
 		return
 	}
 
-	clanTagMap := make(map[int]string)
 	for i := range accountIDs {
 		accountID := accountIDs[i]
 		clanID := clansAccountInfo.Data[accountID].ClanID
@@ -166,34 +166,33 @@ func fetchClanTag(wargaming *repo.Wargaming, accountIDs []int, result chan vo.Re
 		clanTagMap[accountID] = clanTag
 	}
 
-	result <- vo.Result[map[int]string]{clanTagMap, err}
+	result <- vo.Result[map[int]string]{Result: clanTagMap, Error: nil}
 }
 
 func fetchShipInfo(wargaming *repo.Wargaming, result chan vo.Result[map[int]vo.ShipInfo]) {
 	shipInfoMap := make(map[int]vo.ShipInfo, 0)
 	res, err := wargaming.GetEncyclopediaShips(1)
 	if err != nil {
-		result <- vo.Result[map[int]vo.ShipInfo]{nil, err}
+		result <- vo.Result[map[int]vo.ShipInfo]{Result: shipInfoMap, Error: err}
 		return
 	}
 	pageTotal := res.Meta.PageTotal
 
+	var mu sync.Mutex
 	limit := make(chan struct{}, 5)
 	wg := sync.WaitGroup{}
-	var mu sync.Mutex
 	for i := 1; i <= pageTotal; i++ {
-		i := i
+		limit <- struct{}{}
 		wg.Add(1)
-		go func() {
+		go func(pageNo int) {
 			defer func() {
-				<-limit
 				wg.Done()
+				<-limit
 			}()
 
-			limit <- struct{}{}
-			encyclopediaShips, err := wargaming.GetEncyclopediaShips(i)
+			encyclopediaShips, err := wargaming.GetEncyclopediaShips(pageNo)
 			if err != nil {
-				result <- vo.Result[map[int]vo.ShipInfo]{nil, err}
+				result <- vo.Result[map[int]vo.ShipInfo]{Result: shipInfoMap, Error: err}
 				return
 			}
 
@@ -207,21 +206,21 @@ func fetchShipInfo(wargaming *repo.Wargaming, result chan vo.Result[map[int]vo.S
 				}
 				mu.Unlock()
 			}
-		}()
+		}(i)
 	}
 	wg.Wait()
 
-	result <- vo.Result[map[int]vo.ShipInfo]{shipInfoMap, err}
+	result <- vo.Result[map[int]vo.ShipInfo]{Result: shipInfoMap, Error: nil}
 }
 
-func fetchExpectedStats(numbers *repo.Numbers, result chan vo.Result[*vo.ExpectedStats]) {
+func fetchExpectedStats(numbers *repo.Numbers, result chan vo.Result[vo.ExpectedStats]) {
 	expectedStats, err := numbers.Get()
 	if err != nil {
-		result <- vo.Result[*vo.ExpectedStats]{nil, err}
+		result <- vo.Result[vo.ExpectedStats]{Result: *expectedStats, Error: err}
 		return
 	}
 
-	result <- vo.Result[*vo.ExpectedStats]{expectedStats, err}
+	result <- vo.Result[vo.ExpectedStats]{Result: *expectedStats, Error: err}
 }
 
 func compose(
@@ -233,8 +232,8 @@ func compose(
 	shipInfo map[int]vo.ShipInfo,
 	expectedStats vo.ExpectedStats,
 ) {
-	// friends := make([]vo.Player, 0)
-	// enemies := make([]vo.Player, 0)
+	friends := make([]vo.Player, 0)
+	enemies := make([]vo.Player, 0)
 	rating := domain.Rating{}
 
 	for i := range tempArenaInfo.Vehicles {
@@ -242,67 +241,95 @@ func compose(
 		playerShipInfo := shipInfo[vehicle.ShipID]
 
 		var accountID int
+		var nickName string
 		for j := range accountList.Data {
 			item := accountList.Data[j]
 			if item.NickName == vehicle.Name {
 				accountID = item.AccountID
+				nickName = item.NickName
 				break
 			}
 		}
 
-		playerAccountInfo := accountInfo.Data[accountID]
-		var playerAvgDamage int
-		var playerKdRate float32
-		var playerAvgExp int
-		var playerWinRate float32
-		if playerAccountInfo.Statistics.Pvp.Battles != 0 {
-			playerAvgDamage = playerAccountInfo.Statistics.Pvp.DamageDealt / playerAccountInfo.Statistics.Pvp.Battles
-			playerKdRate = float32(playerAccountInfo.Statistics.Pvp.Frags) / float32(playerAccountInfo.Statistics.Pvp.Battles-playerAccountInfo.Statistics.Pvp.SurvivedBattles)
-			playerAvgExp = playerAccountInfo.Statistics.Pvp.Xp / playerAccountInfo.Statistics.Pvp.Battles
-			playerWinRate = float32(playerAccountInfo.Statistics.Pvp.Wins) / float32(playerAccountInfo.Statistics.Pvp.Battles) * 100
-		}
+		clan := clanTag[accountID]
 
-		var playerShipAvgDamage int
-		var playerShipKdRate float32
-		var playerShipAvgExp int
-		var playerShipWinRate float32
-		var playerShipAvgFrags float32
+		var summaryStats domain.SummaryStats
+		playerAccountInfo := accountInfo.Data[accountID]
 		for k := range shipStats[accountID].Data[accountID] {
 			playerShipStats := shipStats[accountID].Data[accountID][k]
 			if playerShipStats.ShipID == vehicle.ShipID {
-				if playerShipStats.Pvp.Battles != 0 {
-					playerShipAvgDamage = playerShipStats.Pvp.DamageDealt / playerShipStats.Pvp.Battles
-					playerShipKdRate = float32(playerShipStats.Pvp.Frags) / float32(playerShipStats.Pvp.Battles-playerShipStats.Pvp.SurvivedBattles)
-					playerShipAvgExp = playerShipStats.Pvp.Xp / playerShipStats.Pvp.Battles
-					playerShipWinRate = float32(playerShipStats.Pvp.Wins) / float32(playerShipStats.Pvp.Battles) * 100
-					playerShipAvgFrags = float32(playerShipStats.Pvp.Frags) / float32(playerShipStats.Pvp.Battles)
+				summaryStats = domain.SummaryStats{
+					Player: domain.Stats{
+						Battles:         playerAccountInfo.Statistics.Pvp.Battles,
+						SurvivedBattles: playerAccountInfo.Statistics.Pvp.SurvivedBattles,
+						DamageDealt:     playerAccountInfo.Statistics.Pvp.DamageDealt,
+						Xp:              playerAccountInfo.Statistics.Pvp.Xp,
+						Frags:           playerAccountInfo.Statistics.Pvp.Frags,
+						Wins:            playerAccountInfo.Statistics.Pvp.Wins,
+					},
+					Ship: domain.Stats{
+						Battles:         playerShipStats.Pvp.Battles,
+						SurvivedBattles: playerShipStats.Pvp.SurvivedBattles,
+						DamageDealt:     playerShipStats.Pvp.DamageDealt,
+						Xp:              playerShipStats.Pvp.Xp,
+						Frags:           playerShipStats.Pvp.Frags,
+						Wins:            playerShipStats.Pvp.Wins,
+					},
 				}
 				break
 			}
 		}
 
-		combatPower := rating.CombatPower(
-			float64(playerShipAvgDamage),
-			float64(playerKdRate),
-			float64(playerAvgExp),
-			playerShipInfo.Tier,
-			playerShipInfo.Type,
-		)
-
 		expectedShipStats := expectedStats.Data[vehicle.ShipID]
-		personalRating := rating.PersonalRating(
-			float64(playerShipAvgDamage),
-			float64(playerShipAvgFrags),
-			float64(playerShipWinRate),
-			expectedShipStats.AverageDamageDealt,
-			expectedShipStats.AverageFrags,
-			expectedShipStats.WinRate,
-		)
 
-		fmt.Println(vehicle.Name, accountID, playerShipInfo.Name)
-		fmt.Println(combatPower, personalRating)
-		fmt.Println(playerAvgDamage, playerKdRate, playerAvgExp, playerWinRate)
-		fmt.Println(playerShipAvgDamage, playerShipKdRate, playerShipAvgExp, playerShipWinRate)
-		fmt.Println()
+		player := vo.Player{
+			ShipInfo: vo.PlayerShipInfo{
+				Name:   playerShipInfo.Name,
+				Nation: playerShipInfo.Nation,
+				Tier:   playerShipInfo.Tier,
+				Type:   playerShipInfo.Type,
+			},
+			ShipStats: vo.PlayerShipStats{
+				Battles:   summaryStats.Player.Battles,
+				AvgDamage: int(summaryStats.PlayerAvgDamage()),
+				AvgExp:    int(summaryStats.PlayerAvgExp()),
+				WinRate:   float32(summaryStats.PlayerWinRate()),
+				KdRate:    float32(summaryStats.PlayerKdRate()),
+				CombatPower: rating.CombatPower(
+					summaryStats.ShipAvgDamage(),
+					summaryStats.ShipKdRate(),
+					summaryStats.ShipAvgExp(),
+					playerShipInfo.Tier,
+					playerShipInfo.Type,
+				),
+				PersonalRating: rating.PersonalRating(
+					summaryStats.ShipAvgDamage(),
+					summaryStats.ShipAvgFrags(),
+					summaryStats.ShipWinRate(),
+					expectedShipStats.AverageDamageDealt,
+					expectedShipStats.AverageFrags,
+					expectedShipStats.WinRate,
+				),
+			},
+			PlayerInfo: vo.PlayerPlayerInfo{
+				Name: nickName,
+				Clan: clan,
+			},
+			PlayerStats: vo.PlayerPlayerStats{
+				Battles:   summaryStats.Player.Battles,
+				AvgDamage: int(summaryStats.PlayerAvgDamage()),
+				AvgExp:    int(summaryStats.PlayerAvgExp()),
+				WinRate:   float32(summaryStats.PlayerWinRate()),
+				KdRate:    float32(summaryStats.PlayerKdRate()),
+			},
+		}
+
+		if vehicle.Relation == 0 || vehicle.Relation == 1 {
+			friends = append(friends, player)
+		} else {
+			enemies = append(enemies, player)
+		}
+
+		fmt.Println(player)
 	}
 }
