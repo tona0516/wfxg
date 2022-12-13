@@ -1,4 +1,4 @@
-package repository
+package repo
 
 import (
 	"encoding/json"
@@ -18,19 +18,21 @@ func (a *ApiClient[T]) GetRequest(url string) (T, error) {
 
 	var empty T
 	if err != nil {
+		fmt.Println(err)
 		return empty, err
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
+		fmt.Println(err)
 		return empty, err
 	}
-
-	fmt.Println(string(body))
+	// fmt.Println(string(body))
 
 	var response T
 	err = json.Unmarshal(body, &response)
 	if err != nil {
+		fmt.Println(err)
 		return empty, err
 	}
 
