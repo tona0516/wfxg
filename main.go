@@ -223,6 +223,24 @@ func fetchExpectedStats(numbers *repo.Numbers, result chan vo.Result[vo.Expected
 	result <- vo.Result[vo.ExpectedStats]{Result: *expectedStats, Error: err}
 }
 
+func calculateAvgTier(accountID int, shipInfo map[int]vo.ShipInfo, shipStats map[int]vo.ShipsStats) float64 {
+	sum := 0
+	battles := 0
+	playerShipStats := shipStats[accountID].Data[accountID]
+	for i := range playerShipStats {
+		shipID := playerShipStats[i].ShipID
+		tier := shipInfo[shipID].Tier
+		sum += playerShipStats[i].Pvp.Battles * tier
+		battles += playerShipStats[i].Pvp.Battles
+	}
+
+	if battles == 0 {
+		return 0
+	} else {
+		return float64(sum) / float64(battles)
+	}
+}
+
 func compose(
 	tempArenaInfo vo.TempArenaInfo,
 	accountInfo vo.AccountInfo,
@@ -321,6 +339,7 @@ func compose(
 				AvgExp:    int(summaryStats.PlayerAvgExp()),
 				WinRate:   float32(summaryStats.PlayerWinRate()),
 				KdRate:    float32(summaryStats.PlayerKdRate()),
+				AvgTier:   float32(calculateAvgTier(accountID, shipInfo, shipStats)),
 			},
 		}
 
