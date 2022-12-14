@@ -22,3 +22,13 @@ func (w *WGAccountList) AccountIDs() []int {
 	}
 	return accountIDs
 }
+
+func (w *WGAccountList) AccountID(nickname string) int {
+	for i := range w.Data {
+		item := w.Data[i]
+		if item.NickName == nickname {
+			return item.AccountID
+		}
+	}
+	return 0
+}
