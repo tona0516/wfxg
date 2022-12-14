@@ -6,6 +6,9 @@ import (
 	"wfxg/domain"
 	"wfxg/repo"
 	"wfxg/vo"
+
+	"github.com/fatih/color"
+	"github.com/rodaine/table"
 )
 
 type StatsService struct {
@@ -325,7 +328,42 @@ func compose(
 		} else {
 			enemies = append(enemies, player)
 		}
-
-		fmt.Println(player)
 	}
+
+	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+	columnFmt := color.New(color.FgYellow).SprintfFunc()
+
+	friendsTbl := table.New("Name", "Clan", "Ship", "Nation", "Tier", "Type", "CP", "PR")
+	friendsTbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+
+	for _, player := range friends {
+		friendsTbl.AddRow(
+			player.PlayerInfo.Name,
+			player.PlayerInfo.Clan,
+			player.ShipInfo.Name,
+			player.ShipInfo.Nation,
+			player.ShipInfo.Tier,
+			player.ShipInfo.Type,
+			player.ShipStats.CombatPower,
+			player.ShipStats.PersonalRating,
+		)
+	}
+	friendsTbl.Print()
+
+	enemiesTbl := table.New("Name", "Clan", "Ship", "Nation", "Tier", "Type", "CP", "PR")
+	enemiesTbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+
+	for _, player := range friends {
+		enemiesTbl.AddRow(
+			player.PlayerInfo.Name,
+			player.PlayerInfo.Clan,
+			player.ShipInfo.Name,
+			player.ShipInfo.Nation,
+			player.ShipInfo.Tier,
+			player.ShipInfo.Type,
+			player.ShipStats.CombatPower,
+			player.ShipStats.PersonalRating,
+		)
+	}
+	enemiesTbl.Print()
 }
