@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"wfxg/domain"
 	"wfxg/repo"
@@ -76,25 +75,14 @@ func main() {
 }
 
 func fetchAccount(wargaming *repo.Wargaming, tempArenaInfo vo.TempArenaInfo) ([]int, *vo.WGAccountList, error) {
-	accountNames := make([]string, 0)
-	for i := range tempArenaInfo.Vehicles {
-		vehicle := tempArenaInfo.Vehicles[i]
-		if strings.HasPrefix(vehicle.Name, ":") && strings.HasSuffix(vehicle.Name, ":") {
-			continue
-		}
-
-		accountNames = append(accountNames, vehicle.Name)
-	}
+	accountNames := tempArenaInfo.AccountNames()
 
 	accountList, err := wargaming.GetAccountList(accountNames)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	accountIDs := make([]int, 0)
-	for i := range accountList.Data {
-		accountIDs = append(accountIDs, accountList.Data[i].AccountID)
-	}
+	accountIDs := accountList.AccountIDs()
 
 	return accountIDs, &accountList, nil
 }
@@ -145,13 +133,7 @@ func fetchClanTag(wargaming *repo.Wargaming, accountIDs []int, result chan vo.Re
 		return
 	}
 
-	clanIDs := make([]int, 0)
-	for i := range clansAccountInfo.Data {
-		clanID := clansAccountInfo.Data[i].ClanID
-		if clanID != 0 {
-			clanIDs = append(clanIDs, clansAccountInfo.Data[i].ClanID)
-		}
-	}
+	clanIDs := clansAccountInfo.ClanIDs()
 
 	clansInfo, err := wargaming.GetClansInfo(clanIDs)
 	if err != nil {

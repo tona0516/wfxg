@@ -11,3 +11,14 @@ type WGAccountList struct {
 		AccountID int    `json:"account_id"`
 	} `json:"data"`
 }
+
+func (w *WGAccountList) AccountIDs() []int {
+	accountIDs := make([]int, 0)
+	for i := range w.Data {
+		accountID := w.Data[i].AccountID
+		if accountID != 0 {
+			accountIDs = append(accountIDs, w.Data[i].AccountID)
+		}
+	}
+	return accountIDs
+}
