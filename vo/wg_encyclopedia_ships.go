@@ -1,6 +1,6 @@
 package vo
 
-type EncyclopediaShips struct {
+type WGEncyclopediaShips struct {
 	Status string `json:"status"`
 	Meta   struct {
 		Count     int `json:"count"`

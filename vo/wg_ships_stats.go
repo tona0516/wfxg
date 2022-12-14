@@ -1,6 +1,6 @@
 package vo
 
-type ShipsStats struct {
+type WGShipsStats struct {
 	Status string `json:"status"`
 	Meta   struct {
 		Count  int         `json:"count"`

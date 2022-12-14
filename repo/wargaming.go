@@ -25,7 +25,7 @@ func buildUrl(path string, query map[string]string) *url.URL {
 type Wargaming struct {
 }
 
-func (w *Wargaming) GetAccountInfo(accountIDs []int) (vo.AccountInfo, error) {
+func (w *Wargaming) GetAccountInfo(accountIDs []int) (vo.WGAccountInfo, error) {
 	accountIDsString := make([]string, 0)
 	for i := range accountIDs {
 		accountIDsString = append(accountIDsString, strconv.Itoa(accountIDs[i]))
@@ -46,11 +46,11 @@ func (w *Wargaming) GetAccountInfo(accountIDs []int) (vo.AccountInfo, error) {
 		},
 	)
 
-	client := ApiClient[vo.AccountInfo]{}
+	client := ApiClient[vo.WGAccountInfo]{}
 	return client.GetRequest(u.String())
 }
 
-func (w *Wargaming) GetAccountList(accountNames []string) (vo.AccountList, error) {
+func (w *Wargaming) GetAccountList(accountNames []string) (vo.WGAccountList, error) {
 	u := buildUrl(
 		"/wows/account/list/",
 		map[string]string{
@@ -61,11 +61,11 @@ func (w *Wargaming) GetAccountList(accountNames []string) (vo.AccountList, error
 		},
 	)
 
-	client := ApiClient[vo.AccountList]{}
+	client := ApiClient[vo.WGAccountList]{}
 	return client.GetRequest(u.String())
 }
 
-func (w *Wargaming) GetClansAccountInfo(accountIDs []int) (vo.ClansAccountInfo, error) {
+func (w *Wargaming) GetClansAccountInfo(accountIDs []int) (vo.WGClansAccountInfo, error) {
 	accountIDsString := make([]string, 0)
 	for i := range accountIDs {
 		accountIDsString = append(accountIDsString, strconv.Itoa(accountIDs[i]))
@@ -80,11 +80,11 @@ func (w *Wargaming) GetClansAccountInfo(accountIDs []int) (vo.ClansAccountInfo, 
 		},
 	)
 
-	client := ApiClient[vo.ClansAccountInfo]{}
+	client := ApiClient[vo.WGClansAccountInfo]{}
 	return client.GetRequest(u.String())
 }
 
-func (w *Wargaming) GetClansInfo(clanIDs []int) (vo.ClansInfo, error) {
+func (w *Wargaming) GetClansInfo(clanIDs []int) (vo.WGClansInfo, error) {
 	clanIDsString := make([]string, 0)
 	for i := range clanIDs {
 		clanIDsString = append(clanIDsString, strconv.Itoa(clanIDs[i]))
@@ -99,11 +99,11 @@ func (w *Wargaming) GetClansInfo(clanIDs []int) (vo.ClansInfo, error) {
 		},
 	)
 
-	client := ApiClient[vo.ClansInfo]{}
+	client := ApiClient[vo.WGClansInfo]{}
 	return client.GetRequest(u.String())
 }
 
-func (w *Wargaming) GetEncyclopediaShips(pageNo int) (vo.EncyclopediaShips, error) {
+func (w *Wargaming) GetEncyclopediaShips(pageNo int) (vo.WGEncyclopediaShips, error) {
 	u := buildUrl(
 		"/wows/encyclopedia/ships/",
 		map[string]string{
@@ -119,11 +119,11 @@ func (w *Wargaming) GetEncyclopediaShips(pageNo int) (vo.EncyclopediaShips, erro
 		},
 	)
 
-	client := ApiClient[vo.EncyclopediaShips]{}
+	client := ApiClient[vo.WGEncyclopediaShips]{}
 	return client.GetRequest(u.String())
 }
 
-func (w *Wargaming) GetShipsStats(accountID int) (vo.ShipsStats, error) {
+func (w *Wargaming) GetShipsStats(accountID int) (vo.WGShipsStats, error) {
 	u := buildUrl(
 		"/wows/ships/stats/",
 		map[string]string{
@@ -141,6 +141,6 @@ func (w *Wargaming) GetShipsStats(accountID int) (vo.ShipsStats, error) {
 		},
 	)
 
-	client := ApiClient[vo.ShipsStats]{}
+	client := ApiClient[vo.WGShipsStats]{}
 	return client.GetRequest(u.String())
 }

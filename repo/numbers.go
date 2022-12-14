@@ -12,7 +12,7 @@ import (
 type Numbers struct {
 }
 
-func (n *Numbers) Get() (*vo.ExpectedStats, error) {
+func (n *Numbers) Get() (*vo.NSExpectedStats, error) {
 	res, err := http.Get("https://api.wows-numbers.com/personal/rating/expected/json/")
 	if res != nil {
 		defer res.Body.Close()
@@ -38,7 +38,7 @@ func (n *Numbers) Get() (*vo.ExpectedStats, error) {
 
 	time := depth1["time"].(float64)
 	depth2 := depth1["data"].(map[string]interface{})
-	data := make(map[int]vo.ExpectedStatsData)
+	data := make(map[int]vo.NSExpectedStatsData)
 	for key, value := range depth2 {
 		keyInt, err := strconv.Atoi(key)
 		if err != nil {
@@ -50,14 +50,14 @@ func (n *Numbers) Get() (*vo.ExpectedStats, error) {
 			continue
 		}
 
-		data[keyInt] = vo.ExpectedStatsData{
+		data[keyInt] = vo.NSExpectedStatsData{
 			AverageDamageDealt: valueMap["average_damage_dealt"].(float64),
 			AverageFrags:       valueMap["average_frags"].(float64),
 			WinRate:            valueMap["win_rate"].(float64),
 		}
 	}
 
-	response := vo.ExpectedStats{
+	response := vo.NSExpectedStats{
 		Time: int(time),
 		Data: data,
 	}

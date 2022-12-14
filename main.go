@@ -26,11 +26,11 @@ func main() {
 		return
 	}
 
-	accountInfoResult := make(chan vo.Result[vo.AccountInfo], 1)
-	shipStatsResult := make(chan vo.Result[map[int]vo.ShipsStats], 1)
+	accountInfoResult := make(chan vo.Result[vo.WGAccountInfo], 1)
+	shipStatsResult := make(chan vo.Result[map[int]vo.WGShipsStats], 1)
 	clanTagResult := make(chan vo.Result[map[int]string], 1)
 	shipInfoResult := make(chan vo.Result[map[int]vo.ShipInfo], 1)
-	expectedStatsResult := make(chan vo.Result[vo.ExpectedStats], 1)
+	expectedStatsResult := make(chan vo.Result[vo.NSExpectedStats], 1)
 
 	go fetchAccountInfo(&wargaming, accountIDs, accountInfoResult)
 	go fetchShipStats(&wargaming, accountIDs, shipStatsResult)
@@ -75,7 +75,7 @@ func main() {
 	)
 }
 
-func fetchAccount(wargaming *repo.Wargaming, tempArenaInfo vo.TempArenaInfo) ([]int, *vo.AccountList, error) {
+func fetchAccount(wargaming *repo.Wargaming, tempArenaInfo vo.TempArenaInfo) ([]int, *vo.WGAccountList, error) {
 	accountNames := make([]string, 0)
 	for i := range tempArenaInfo.Vehicles {
 		vehicle := tempArenaInfo.Vehicles[i]
@@ -99,18 +99,18 @@ func fetchAccount(wargaming *repo.Wargaming, tempArenaInfo vo.TempArenaInfo) ([]
 	return accountIDs, &accountList, nil
 }
 
-func fetchAccountInfo(wargaming *repo.Wargaming, accountIDs []int, result chan vo.Result[vo.AccountInfo]) {
+func fetchAccountInfo(wargaming *repo.Wargaming, accountIDs []int, result chan vo.Result[vo.WGAccountInfo]) {
 	accountInfo, err := wargaming.GetAccountInfo(accountIDs)
 	if err != nil {
-		result <- vo.Result[vo.AccountInfo]{Result: accountInfo, Error: err}
+		result <- vo.Result[vo.WGAccountInfo]{Result: accountInfo, Error: err}
 		return
 	}
 
-	result <- vo.Result[vo.AccountInfo]{Result: accountInfo, Error: nil}
+	result <- vo.Result[vo.WGAccountInfo]{Result: accountInfo, Error: nil}
 }
 
-func fetchShipStats(wargaming *repo.Wargaming, accountIDs []int, result chan vo.Result[map[int]vo.ShipsStats]) {
-	shipStatsMap := make(map[int]vo.ShipsStats)
+func fetchShipStats(wargaming *repo.Wargaming, accountIDs []int, result chan vo.Result[map[int]vo.WGShipsStats]) {
+	shipStatsMap := make(map[int]vo.WGShipsStats)
 	limit := make(chan struct{}, 5)
 	wg := sync.WaitGroup{}
 	for i := range accountIDs {
@@ -124,7 +124,7 @@ func fetchShipStats(wargaming *repo.Wargaming, accountIDs []int, result chan vo.
 
 			shipStats, err := wargaming.GetShipsStats(accountID)
 			if err != nil {
-				result <- vo.Result[map[int]vo.ShipsStats]{Result: shipStatsMap, Error: err}
+				result <- vo.Result[map[int]vo.WGShipsStats]{Result: shipStatsMap, Error: err}
 				return
 			}
 
@@ -133,7 +133,7 @@ func fetchShipStats(wargaming *repo.Wargaming, accountIDs []int, result chan vo.
 	}
 	wg.Wait()
 
-	result <- vo.Result[map[int]vo.ShipsStats]{Result: shipStatsMap, Error: nil}
+	result <- vo.Result[map[int]vo.WGShipsStats]{Result: shipStatsMap, Error: nil}
 }
 
 func fetchClanTag(wargaming *repo.Wargaming, accountIDs []int, result chan vo.Result[map[int]string]) {
@@ -213,17 +213,17 @@ func fetchShipInfo(wargaming *repo.Wargaming, result chan vo.Result[map[int]vo.S
 	result <- vo.Result[map[int]vo.ShipInfo]{Result: shipInfoMap, Error: nil}
 }
 
-func fetchExpectedStats(numbers *repo.Numbers, result chan vo.Result[vo.ExpectedStats]) {
+func fetchExpectedStats(numbers *repo.Numbers, result chan vo.Result[vo.NSExpectedStats]) {
 	expectedStats, err := numbers.Get()
 	if err != nil {
-		result <- vo.Result[vo.ExpectedStats]{Result: *expectedStats, Error: err}
+		result <- vo.Result[vo.NSExpectedStats]{Result: *expectedStats, Error: err}
 		return
 	}
 
-	result <- vo.Result[vo.ExpectedStats]{Result: *expectedStats, Error: err}
+	result <- vo.Result[vo.NSExpectedStats]{Result: *expectedStats, Error: err}
 }
 
-func calculateAvgTier(accountID int, shipInfo map[int]vo.ShipInfo, shipStats map[int]vo.ShipsStats) float64 {
+func calculateAvgTier(accountID int, shipInfo map[int]vo.ShipInfo, shipStats map[int]vo.WGShipsStats) float64 {
 	sum := 0
 	battles := 0
 	playerShipStats := shipStats[accountID].Data[accountID]
@@ -243,12 +243,12 @@ func calculateAvgTier(accountID int, shipInfo map[int]vo.ShipInfo, shipStats map
 
 func compose(
 	tempArenaInfo vo.TempArenaInfo,
-	accountInfo vo.AccountInfo,
-	accountList vo.AccountList,
+	accountInfo vo.WGAccountInfo,
+	accountList vo.WGAccountList,
 	clanTag map[int]string,
-	shipStats map[int]vo.ShipsStats,
+	shipStats map[int]vo.WGShipsStats,
 	shipInfo map[int]vo.ShipInfo,
-	expectedStats vo.ExpectedStats,
+	expectedStats vo.NSExpectedStats,
 ) {
 	friends := make([]vo.Player, 0)
 	enemies := make([]vo.Player, 0)

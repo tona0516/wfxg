@@ -1,6 +1,6 @@
 package vo
 
-type AccountInfo struct {
+type WGAccountInfo struct {
 	Status string `json:"status"`
 	Meta   struct {
 		Count  int         `json:"count"`
